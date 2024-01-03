@@ -17,6 +17,7 @@ library(readr)
 library(dplyr)
 library(ggplot2)
 library(scales)
+library(sf)
 ```
 
 You can add options to executable code like this
@@ -64,6 +65,8 @@ X2022_S1_NB_FER <- read_delim("2017-2022/2022_S1_NB_FER.txt",
 
 X2022_S2_NB_FER <- read_delim("2017-2022/2022_S2_NB_FER.txt", 
                               delim = ";", escape_double = FALSE, trim_ws = TRUE)
+
+X2023_s1_NB_FER <- read.csv("data/validations-reseau-ferre-nombre-validations-par-jour-1er-semestre.csv", sep = ";", header = TRUE)
 ```
 
 The `echo: false` option disables the printing of code (only output is displayed).
@@ -72,7 +75,13 @@ The `echo: false` option disables the printing of code (only output is displayed
 data_frames_list <- list(
   X2017_S2_NB_FER, X2018_S1_NB_FER, X2018_S2_NB_Fer,
   X2019_S1_NB_FER, X2019_S2_NB_FER, X2020_S1_NB_FER, X2020_S2_NB_FER,
-  X2021_S1_NB_FER, X2021_S2_NB_FER, X2022_S1_NB_FER, X2022_S2_NB_FER
+  X2021_S1_NB_FER, X2021_S2_NB_FER, X2022_S1_NB_FER, X2022_S2_NB_FER, X2023_s1_NB_FER
+)
+
+data_frames_list_names <- list(
+  "X2017_S2_NB_FER", "X2018_S1_NB_FER", "X2018_S2_NB_Fer",
+  "X2019_S1_NB_FER", "X2019_S2_NB_FER", "X2020_S1_NB_FER", "X2020_S2_NB_FER",
+  "X2021_S1_NB_FER", "X2021_S2_NB_FER", "X2022_S1_NB_FER", "X2022_S2_NB_FER", "X2023_s1_NB_FER"
 )
 # Initialize an empty list to store the results
 results <- list()
@@ -130,7 +139,12 @@ combined_df <- mutate(combined_df, CATEGORIE_TITRE = ifelse(CATEGORIE_TITRE == "
 ```
 
 ```{r}
-combined_df
+data <- st_read("data/stations/REF_ZdA/PL_ZDL_R_06_12_2023.shp")
+data <- st_transform(data, crs = 4326)
+data <- dplyr::rename(data, ID_REFA_LDA = "idrefa_lda")
+combined_df$ID_REFA_LDA <- as.numeric(combined_df$ID_REFA_LDA)
+final_df <- left_join(combined_df, data, by = "ID_REFA_LDA")
+write.csv(final_df, "final_df.csv", row.names = FALSE)
 ```
 
 ```{r}
