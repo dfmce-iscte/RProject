@@ -1,0 +1,215 @@
+---
+title: "Project"
+format: pdf
+editor: visual
+---
+
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(scales)
+```
+
+
+You can add options to executable code like this
+
+
+```{r}
+X2017_S2_NB_FER <- read_delim("2017-2022/2017_S2_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2018_S1_NB_FER <- read_delim("2017-2022/2018_S1_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2018_S2_NB_Fer <- read_delim("2017-2022/2018_S2_NB_Fer.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2019_S1_NB_FER <- read_delim("2017-2022/2019_S1_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2019_S2_NB_FER <- read_delim("2017-2022/2019_S2_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2020_S1_NB_FER <- read_delim("2017-2022/2020_S1_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2020_S2_NB_FER <- read_delim("2017-2022/2020_S2_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2021_S1_NB_FER <- read_delim("2017-2022/2021_S1_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2021_S2_NB_FER <- read_delim("2017-2022/2021_S2_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2022_S1_NB_FER <- read_delim("2017-2022/2022_S1_NB_FER.txt", 
+                              delim = "\t", escape_double = FALSE, 
+                              trim_ws = TRUE)
+
+X2022_S2_NB_FER <- read_delim("2017-2022/2022_S2_NB_FER.txt", 
+                              delim = ";", escape_double = FALSE, trim_ws = TRUE)
+```
+
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+
+```{r}
+data_frames_list <- list(
+  X2017_S2_NB_FER, X2018_S1_NB_FER, X2018_S2_NB_Fer,
+  X2019_S1_NB_FER, X2019_S2_NB_FER, X2020_S1_NB_FER, X2020_S2_NB_FER,
+  X2021_S1_NB_FER, X2021_S2_NB_FER, X2022_S1_NB_FER, X2022_S2_NB_FER
+)
+# Initialize an empty list to store the results
+results <- list()
+
+# Loop through each dataframe in the list
+for (df in data_frames_list) {
+ # Loop through each column in the dataframe
+ for (col in names(df)) {
+   # Get the class of the column
+   col_class <- sapply(df[[col]], class)[1]
+   
+   # If the column name does not exist in the results list yet, initialize it
+   if (!(col %in% names(results))) {
+     results[[col]] <- NULL
+   }
+   
+   # Append the class to the results list for this column
+   results[[col]] <- append(results[[col]], col_class)
+ }
+}
+
+# Remove duplicate entries for each column
+results <- lapply(results, unique)
+
+# Find columns with more than one class
+multi_class_columns <- names(results)[sapply(results, length) > 1]
+
+print(multi_class_columns)
+
+
+```
+
+```{r}
+data_frames_list <- lapply(data_frames_list, function(df) {
+  subset(df, LIBELLE_ARRET != "Inconnu")
+})
+
+data_frames_list <- lapply(data_frames_list, function(df) {
+  df$CODE_STIF_RES <- as.numeric(df$CODE_STIF_RES)
+  df$CODE_STIF_ARRET <- as.numeric(df$CODE_STIF_ARRET)
+  return(df)
+})
+
+data_frames_list <- lapply(data_frames_list, function(df) {
+  if ("lda" %in% names(df)) {
+    df <- rename(df, ID_REFA_LDA = lda)
+  }
+  return(df)
+})
+
+combined_df <- bind_rows(data_frames_list)
+
+
+combined_df <- mutate(combined_df, CATEGORIE_TITRE = ifelse(CATEGORIE_TITRE == "?", "NON DEFINI", CATEGORIE_TITRE))
+```
+
+```{r}
+combined_df
+```
+
+```{r}
+combined_df$CODE_STIF_TRNS <- as.factor(combined_df$CODE_STIF_TRNS)
+ggplot(combined_df, aes(x=CODE_STIF_TRNS)) + 
+  geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
+  labs(title="Barplot of CODE_STIF_TRNS", x="CODE_STIF_TRNS", y="Count")
+```
+
+```{r}
+combined_df$CODE_STIF_RES <- as.factor(combined_df$CODE_STIF_RES)
+ggplot(combined_df, aes(x=CODE_STIF_RES)) + 
+  geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
+  labs(title="Barplot of CODE_STIF_RES", x="CODE_STIF_RES", y="Count")
+```
+
+```{r}
+combined_df$CODE_STIF_ARRET <- as.factor(combined_df$CODE_STIF_ARRET)
+ggplot(combined_df, aes(x=CODE_STIF_ARRET)) + 
+  geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
+  labs(title="Barplot of CODE_STIF_ARRET", x="CODE_STIF_ARRET", y="Count")
+```
+
+```{r}
+combined_df$ID_REFA_LDA <- as.factor(combined_df$ID_REFA_LDA)
+ggplot(combined_df, aes(x=ID_REFA_LDA)) + 
+  geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
+  labs(title="Barplot of ID_REFA_LDA", x="ID_REFA_LDA", y="Count")
+```
+
+```{r}
+# Assuming 'JOUR' is your date column in the dataframe 'df'
+
+# Convert 'JOUR' to Date format
+combined_df$CATEGORIE_TITRE <- as.factor(combined_df$CATEGORIE_TITRE)
+ggplot(combined_df, aes(x=CATEGORIE_TITRE)) + 
+  geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) + coord_flip() +
+  labs(title="Barplot of CATEGORIE_TITRE", x="CATEGORIE_TITRE", y="Count")
+```
+
+```{r}
+combined_df$JOUR <- as.Date(combined_df$JOUR, format = "%d/%m/%Y")
+
+# Extract month, year, and season information
+combined_df <- combined_df %>%
+  mutate(Month = format(JOUR, "%m"),
+         Year = format(JOUR, "%Y"),
+         Season = case_when(
+           between(as.numeric(format(JOUR, "%m")), 3, 5) ~ "Spring",
+           between(as.numeric(format(JOUR, "%m")), 6, 8) ~ "Summer",
+           between(as.numeric(format(JOUR, "%m")), 9, 11) ~ "Autumn",
+           TRUE ~ "Winter"
+         ))
+```
+
+```{r}
+# Create a distribution plot for each month
+ggplot(combined_df, aes(x = factor(Month))) +
+  geom_bar() +
+  labs(title = "Distribution by Month", x = "Month", y = "Count")
+```
+
+```{r}
+# Create a distribution plot for each year
+ggplot(combined_df, aes(x = factor(Year))) +
+  geom_bar() +
+  labs(title = "Distribution by Year", x = "Year", y = "Count")
+```
+
+```{r}
+# Create a distribution plot for each season
+ggplot(combined_df, aes(x = Season)) +
+  geom_bar() +
+  labs(title = "Distribution by Season", x = "Season", y = "Count")
+```
+
