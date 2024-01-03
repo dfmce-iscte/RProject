@@ -10,7 +10,6 @@ Quarto enables you to weave together content and executable code into a finished
 
 ## Running Code
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
 
 ```{r}
 library(readr)
@@ -19,8 +18,9 @@ library(ggplot2)
 library(scales)
 library(sf)
 ```
+# 1. Data Collection and Cleaning
 
-You can add options to executable code like this
+Extract all necessary documents and create a list with all the datasets 
 
 ```{r}
 X2017_S2_NB_FER <- read_delim("2017-2022/2017_S2_NB_FER.txt", 
@@ -67,11 +67,9 @@ X2022_S2_NB_FER <- read_delim("2017-2022/2022_S2_NB_FER.txt",
                               delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
 X2023_s1_NB_FER <- read.csv("data/validations-reseau-ferre-nombre-validations-par-jour-1er-semestre.csv", sep = ";", header = TRUE)
-```
 
-The `echo: false` option disables the printing of code (only output is displayed).
 
-```{r}
+
 data_frames_list <- list(
   X2017_S2_NB_FER, X2018_S1_NB_FER, X2018_S2_NB_Fer,
   X2019_S1_NB_FER, X2019_S2_NB_FER, X2020_S1_NB_FER, X2020_S2_NB_FER,
@@ -83,48 +81,44 @@ data_frames_list_names <- list(
   "X2019_S1_NB_FER", "X2019_S2_NB_FER", "X2020_S1_NB_FER", "X2020_S2_NB_FER",
   "X2021_S1_NB_FER", "X2021_S2_NB_FER", "X2022_S1_NB_FER", "X2022_S2_NB_FER", "X2023_s1_NB_FER"
 )
-# Initialize an empty list to store the results
-results <- list()
+```
 
-# Loop through each dataframe in the list
+We tried to join all datasets, however some of the columns had more than one data type, therefore transformed all entries into the same data type.
+Datasets contained the same column "ID_REFA_LDA" but with different labels, therefore relabeled this column in some of the datasets so it had the same label throughout all datasets.
+When the values from  $CODE_STIF_RES and $CODE_STIF_ARRET are equal to “ND” the value from  LIBELLE_ARRET is “Inconnu”: as neither the departure station nor the arrival station are known, it did not make sense to keep these record entries, therefore eliminated these rows
+Converted the rest of the entries for columns $CODE_STIF_RES and $CODE_STIF_ARRET to numerical values.
+For column $CATEGORIE_TITRE, verified there were entries with value "?" and entries with value "NON DEFINI": replaced all values "?" to "NON DEFINI".
+Then it was possible to join all the datasets since they were represented with the same type.
+
+```{r}
+# Obtain columns with more than one type
+results <- list()
 for (df in data_frames_list) {
- # Loop through each column in the dataframe
- for (col in names(df)) {
-   # Get the class of the column
+ for (col in names(df)) { 
    col_class <- sapply(df[[col]], class)[1]
-   
-   # If the column name does not exist in the results list yet, initialize it
    if (!(col %in% names(results))) {
      results[[col]] <- NULL
    }
-   
-   # Append the class to the results list for this column
    results[[col]] <- append(results[[col]], col_class)
  }
 }
-
-# Remove duplicate entries for each column
 results <- lapply(results, unique)
-
-# Find columns with more than one class
 multi_class_columns <- names(results)[sapply(results, length) > 1]
-
 print(multi_class_columns)
 
-
-```
-
-```{r}
+#Remove the rows with the value "Inconnu" in the column LIBELLE_ARRET
 data_frames_list <- lapply(data_frames_list, function(df) {
   subset(df, LIBELLE_ARRET != "Inconnu")
 })
 
+#Covert columns to numeric
 data_frames_list <- lapply(data_frames_list, function(df) {
   df$CODE_STIF_RES <- as.numeric(df$CODE_STIF_RES)
   df$CODE_STIF_ARRET <- as.numeric(df$CODE_STIF_ARRET)
   return(df)
 })
 
+#Rename the columns called "lda" to "ID_REFA_LDA"
 data_frames_list <- lapply(data_frames_list, function(df) {
   if ("lda" %in% names(df)) {
     df <- rename(df, ID_REFA_LDA = lda)
@@ -132,22 +126,21 @@ data_frames_list <- lapply(data_frames_list, function(df) {
   return(df)
 })
 
+#Combine all datasets in one 
 combined_df <- bind_rows(data_frames_list)
 
-
+#Replace the registers with "?" in column "CATEGORIE_TITRE" for "NON DEFINI"
 combined_df <- mutate(combined_df, CATEGORIE_TITRE = ifelse(CATEGORIE_TITRE == "?", "NON DEFINI", CATEGORIE_TITRE))
+
 ```
 
-```{r}
-data <- st_read("data/stations/REF_ZdA/PL_ZDL_R_06_12_2023.shp")
-data <- st_transform(data, crs = 4326)
-data <- dplyr::rename(data, ID_REFA_LDA = "idrefa_lda")
-combined_df$ID_REFA_LDA <- as.numeric(combined_df$ID_REFA_LDA)
-final_df <- left_join(combined_df, data, by = "ID_REFA_LDA")
-write.csv(final_df, "final_df.csv", row.names = FALSE)
-```
+Checking for outliers
 
+For this step we decided to visualize all columns with graphs or analyze their distribution. 
+We conclude that: 
+=> It's possible to check that the CODE_STIF_ARRET 19 is only used one time. We decided to eliminated all registers with this occurence for this column.
 ```{r}
+#Create bar plot for variable "CODE_STIF_TRNS"
 combined_df$CODE_STIF_TRNS <- as.factor(combined_df$CODE_STIF_TRNS)
 ggplot(combined_df, aes(x=CODE_STIF_TRNS)) + 
   geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
@@ -155,24 +148,58 @@ ggplot(combined_df, aes(x=CODE_STIF_TRNS)) +
 ```
 
 ```{r}
+#Create bar plot for variable "CODE_STIF_RES"
 combined_df$CODE_STIF_RES <- as.factor(combined_df$CODE_STIF_RES)
 ggplot(combined_df, aes(x=CODE_STIF_RES)) + 
   geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
   labs(title="Barplot of CODE_STIF_RES", x="CODE_STIF_RES", y="Count")
 ```
 
-```{r}
-combined_df$CODE_STIF_ARRET <- as.factor(combined_df$CODE_STIF_ARRET)
-ggplot(combined_df, aes(x=CODE_STIF_ARRET)) + 
-  geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
-  labs(title="Barplot of CODE_STIF_ARRET", x="CODE_STIF_ARRET", y="Count")
-```
+
 
 ```{r}
+#Create bar plot for variable ID_REFA_LDA
 combined_df$ID_REFA_LDA <- as.factor(combined_df$ID_REFA_LDA)
 ggplot(combined_df, aes(x=ID_REFA_LDA)) + 
   geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
   labs(title="Barplot of ID_REFA_LDA", x="ID_REFA_LDA", y="Count")
+```
+
+```{r}
+# VERFICAR SE FUNCIONA
+#Create box plot for variable NB_VALD
+ggplot(combined_df, aes(x=ID_REFA_LDA)) + 
+  geom_boxplot(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
+  labs(title="Boxplot of NB_VALD", x="", y="NB_VALD")
+```
+```{r}
+#Create bar plot for variable CODE_STIF_ARRET
+combined_df$CODE_STIF_ARRET <- as.factor(combined_df$CODE_STIF_ARRET)
+ggplot(combined_df, aes(x=CODE_STIF_ARRET)) + 
+  geom_bar(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
+  labs(title="Barplot of CODE_STIF_ARRET", x="CODE_STIF_ARRET", y="Count")
+
+# Analyze the distributuion for variable CODE_STIF_ARRET
+code_arret_frequency <- table(combined_df$CODE_STIF_ARRET)
+code_arret_frequency <- sort(code_arret_frequency, decreasing = TRUE)
+print(code_arret_frequency)
+
+
+```
+
+```{r}
+#Remove all records with value 19 for column CODE_STIF_ARRET
+combined_df <- combined_df |> filter(CODE_STIF_ARRET != 19)
+```
+
+```{r}
+
+data <- st_read("data/stations/REF_ZdA/PL_ZDL_R_06_12_2023.shp")
+data <- st_transform(data, crs = 4326)
+data <- dplyr::rename(data, ID_REFA_LDA = "idrefa_lda")
+combined_df$ID_REFA_LDA <- as.numeric(combined_df$ID_REFA_LDA)
+final_df <- left_join(combined_df, data, by = "ID_REFA_LDA")
+# write.csv(final_df, "final_df.csv", row.names = FALSE)
 ```
 
 ```{r}
