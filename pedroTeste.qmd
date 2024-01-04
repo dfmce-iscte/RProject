@@ -10,7 +10,6 @@ Quarto enables you to weave together content and executable code into a finished
 
 ## Running Code
 
-
 ```{r}
 library(readr)
 library(dplyr)
@@ -18,9 +17,10 @@ library(ggplot2)
 library(scales)
 library(sf)
 ```
+
 # 1. Data Collection and Cleaning
 
-Extract all necessary documents and create a list with all the datasets 
+Extract all necessary documents and create a list with all the datasets
 
 ```{r}
 X2017_S2_NB_FER <- read_delim("2017-2022/2017_S2_NB_FER.txt", 
@@ -83,12 +83,7 @@ data_frames_list_names <- list(
 )
 ```
 
-We tried to join all datasets, however some of the columns had more than one data type, therefore transformed all entries into the same data type.
-Datasets contained the same column "ID_REFA_LDA" but with different labels, therefore relabeled this column in some of the datasets so it had the same label throughout all datasets.
-When the values from  $CODE_STIF_RES and $CODE_STIF_ARRET are equal to “ND” the value from  LIBELLE_ARRET is “Inconnu”: as neither the departure station nor the arrival station are known, it did not make sense to keep these record entries, therefore eliminated these rows
-Converted the rest of the entries for columns $CODE_STIF_RES and $CODE_STIF_ARRET to numerical values.
-For column $CATEGORIE_TITRE, verified there were entries with value "?" and entries with value "NON DEFINI": replaced all values "?" to "NON DEFINI".
-Then it was possible to join all the datasets since they were represented with the same type.
+We tried to join all datasets, however some of the columns had more than one data type, therefore transformed all entries into the same data type. Datasets contained the same column "ID_REFA_LDA" but with different labels, therefore relabeled this column in some of the datasets so it had the same label throughout all datasets. When the values from \$CODE_STIF_RES and \$CODE_STIF_ARRET are equal to "ND" the value from LIBELLE_ARRET is "Inconnu": as neither the departure station nor the arrival station are known, it did not make sense to keep these record entries, therefore eliminated these rows Converted the rest of the entries for columns \$CODE_STIF_RES and \$CODE_STIF_ARRET to numerical values. For column \$CATEGORIE_TITRE, verified there were entries with value "?" and entries with value "NON DEFINI": replaced all values "?" to "NON DEFINI". Then it was possible to join all the datasets since they were represented with the same type.
 
 ```{r}
 # Obtain columns with more than one type
@@ -136,9 +131,8 @@ combined_df <- mutate(combined_df, CATEGORIE_TITRE = ifelse(CATEGORIE_TITRE == "
 
 Checking for outliers
 
-For this step we decided to visualize all columns with graphs or analyze their distribution. 
-We conclude that: 
-=> It's possible to check that the CODE_STIF_ARRET 19 is only used one time. We decided to eliminated all registers with this occurence for this column.
+For this step we decided to visualize all columns with graphs or analyze their distribution. We conclude that: =\> It's possible to check that the CODE_STIF_ARRET 19 is only used one time. We decided to eliminated all registers with this occurence for this column.
+
 ```{r}
 #Create bar plot for variable "CODE_STIF_TRNS"
 combined_df$CODE_STIF_TRNS <- as.factor(combined_df$CODE_STIF_TRNS)
@@ -155,8 +149,6 @@ ggplot(combined_df, aes(x=CODE_STIF_RES)) +
   labs(title="Barplot of CODE_STIF_RES", x="CODE_STIF_RES", y="Count")
 ```
 
-
-
 ```{r}
 #Create bar plot for variable ID_REFA_LDA
 combined_df$ID_REFA_LDA <- as.factor(combined_df$ID_REFA_LDA)
@@ -172,6 +164,7 @@ ggplot(combined_df, aes(x=ID_REFA_LDA)) +
   geom_boxplot(fill='blue', alpha=0.7) + scale_y_continuous(labels = label_number()) +
   labs(title="Boxplot of NB_VALD", x="", y="NB_VALD")
 ```
+
 ```{r}
 #Create bar plot for variable CODE_STIF_ARRET
 combined_df$CODE_STIF_ARRET <- as.factor(combined_df$CODE_STIF_ARRET)
@@ -246,4 +239,82 @@ ggplot(combined_df, aes(x = factor(Year))) +
 ggplot(combined_df, aes(x = Season)) +
   geom_bar() +
   labs(title = "Distribution by Season", x = "Season", y = "Count")
+```
+
+```{r}
+combined_df$JOUR <- dmy(combined_df$JOUR)
+
+summer_2017_start <- dmy("08/07/2017")
+summer_2017_end <- dmy("30/08/2017")
+halloween_2017_start <- dmy("21/10/2017")
+halloween_2017_end <- dmy("05/11/2017")
+christmas_2017_start <- dmy("23/12/2017")
+christmas_2017_end <- dmy("08/01/2018")
+
+winter_2018_start <- dmy("18/02/2018")
+winter_2018_end <- dmy("04/03/2018")
+spring_2018_start <- dmy("15/04/2018")
+spring_2018_end <- dmy("29/04/2018")
+summer_2018_start <- dmy("08/07/2017")
+summer_2018_end <- dmy("02/09/2018")
+halloween_2018_start <- dmy("21/10/2018")
+halloween_2018_end <- dmy("04/11/2018")
+christmas_2018_start <- dmy("23/12/2018")
+christmas_2018_end <- dmy("06/01/2019")
+
+winter_2019_start <- dmy("24/02/2019")
+winter_2019_end <- dmy("10/03/2019")
+spring_2019_start <- dmy("21/04/2019")
+spring_2019_end <- dmy("05/05/2019")
+summer_2019_start <- dmy("07/07/2019")
+summer_2019_end <- dmy("07/09/2019")
+halloween_2019_start <- dmy("20/10/2019")
+halloween_2019_end <- dmy("03/12/2019")
+christmas_2019_start <- dmy("22/12/2019")
+christmas_2019_end <- dmy("05/01/2020")
+
+winter_2020_start <- dmy("09/02/2020")
+winter_2020_end <- dmy("23/02/2020")
+spring_2020_start <- dmy("05/04/2020")
+spring_2020_end <- dmy("19/04/2020")
+summer_2020_start <- dmy("05/07/2020")
+summer_2020_end <- dmy("31/08/2020")
+halloween_2020_start <- dmy("18/10/2020")
+halloween_2020_end <- dmy("01/11/2020")
+christmas_2020_start <- dmy("21/12/2020")
+christmas_2020_end <- dmy("03/01/2021")
+
+winter_2021_start <- dmy("14/02/2021")
+winter_2021_end <- dmy("28/02/2021")
+spring_2021_start <- dmy("11/04/2021")
+spring_2021_end <- dmy("25/04/2021")
+summer_2021_start <- dmy("07/07/2021")
+summer_2021_end <- dmy("01/09/2021")
+halloween_2021_start <- dmy("24/10/2021")
+halloween_2021_end <- dmy("07/11/2021")
+christmas_2021_start <- dmy("19/12/2021")
+christmas_2021_end <- dmy("02/01/2022")
+
+winter_2022_start <- dmy("20/02/2022")
+winter_2022_end <- dmy("06/03/2022")
+spring_2022_start <- dmy("24/04/2022")
+spring_2022_end <- dmy("08/05/2022")
+summer_2022_start <- dmy("08/07/2022")
+summer_2022_end <- dmy("31/08/2022")
+halloween_2022_start <- dmy("23/10/2022")
+halloween_2022_end <- dmy("06/11/2022")
+christmas_2022_start <- dmy("18/12/2022")
+christmas_2022_end <- dmy("02/01/2023")
+
+winter_2023_start <- dmy("19/02/2023")
+winter_2023_end <- dmy("05/03/2023")
+spring_2023_start <- dmy("23/04/2023")
+spring_2023_end <- dmy("08/05/2023")
+
+# Create the Holiday column
+combined_df <- combined_df %>%
+  mutate(Holiday = ifelse((JOUR >= summer_2017_start & JOUR <= summer_2017_end) |
+                          (JOUR >= halloween_2017_start & JOUR <= halloween_2017_end) |
+                          (JOUR >= christmas_2017_start & JOUR <= christmas_2017_end), TRUE, FALSE))
+
 ```
