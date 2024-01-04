@@ -307,7 +307,6 @@ ggplot(sum_by_TRNS, aes(x = reorder(ID_REFA_LDA, -Sum_NB_VALD), y = Sum_NB_VALD)
 
 
 
-
 # Group by 'ID_REFA_LDA' and calculate the sum of 'NB_VALD' for each group
 sum_by_ARRET <- combined_df %>%
   group_by(ID_REFA_LDA) %>%
@@ -325,9 +324,9 @@ ggplot(sum_by_ARRET, aes(x = reorder(ID_REFA_LDA, Sum_NB_VALD), y = Sum_NB_VALD)
 
 For column "ID_REFA_LDA", the top 5 values with the highest numer of validations are "71517", "73626", "71370", "73794" and "71410", whereas the bottom 5 are "480950", "480951", "59450", "64049" and "425819". Again, there is no big discrepancy in the number of validations among the top 5 values and among the bottom 5 values, but there is a very significant imbalance between the top and bottom, with numbers ranging from 150M to 250M validations for the top values, and numbers reaching only up to 40.000 validations in the bottom values.
 
-=\> nao apagamos os outliers porque queremos ver inconsistencias e diferenças ao longo do tempo
+Even though we identified some discrepancies in the data, we opted not to remove what we considered to be outliers, firstly because they still represent a great volume of data and secondly because with this project we aim to analyse patterns as well as inconsistencies in these patterns and, as such, we considered the outliers to be valuable to the data exploration.
 
-=\> Uma vez que temos muitos dados e que oos pcs nao tem capacidade para correr tantos dados optamos por obter 100000 dados com a mesma distribuiçao temporal dos dados.
+However, we still proceeded to a reduction of the data, keeping only 100.000 entries, given the whole dataset was too large to process in our personal computers and required a considerable running time. Note that we maintained the original distribution of each month and year, to ensure a good balance in the resulting subset.
 
 ```{r}
 # Calculate the proportion of records for each YearMonth
@@ -349,7 +348,7 @@ subset_df <- combined_df %>%
 subset_df
 ```
 
-Aggregate the dataset at the "Zone d'arrêt" level defined by the ID_REFA_LDA feature, collect geographical data about their localisiations
+Aggregate the dataset at the "Zone d'arrêt" level defined by the ID_REFA_LDA feature, collect geographical data about their localisations
 
 ```{r}
 
@@ -380,7 +379,7 @@ final
 Create a 3 columns: one for month, other for Year and for Season
 
 ```{r}
-# Extract month, year, and season information
+Sys.setlocale("LC_TIME", "English")
 final <- final %>%
   mutate(JOUR = as.Date(JOUR, format = "%Y-%m-%d"), 
          Month = format(JOUR, "%m"),
@@ -389,8 +388,8 @@ final <- final %>%
            between(as.numeric(format(JOUR, "%m")), 3, 5) ~ "Spring",
            between(as.numeric(format(JOUR, "%m")), 6, 8) ~ "Summer",
            between(as.numeric(format(JOUR, "%m")), 9, 11) ~ "Autumn",
-           TRUE ~ "Winter"
-         ))
+           TRUE ~ "Winter"),
+         WeekDay = weekdays(JOUR))
 
 ```
 
@@ -415,6 +414,8 @@ ggplot(sum_by_TRNS, aes(x = Year, y = Sum_NB_VALD)) +
 
 ```
 
+What we observe as we plot the sum of all passenger validations throughout the years is that since 2017, the year with the highest records of validations in the railway is 2019, followed by 2022 and 2018, all registering over 45M validations. The lowest number of validations is registered in 2017, with approximately 20M validations, because the record entries from 2017 start in July, but there is no reason to believe the sum of passenger validations would not reach values as high as for the following two years. The same cannot be said for the year 2020, which shows a considerable decrease in the number of validations, logically on account of the Covid-19 pandemic, during which circulations were extremely restricted. These numbers then increase in 2021, when the restrictions were relieved and reach the normal values of approximately 45M in 2022. Finally, the year 2023 falls back to much lower numbers, as in 2017, again due to lack of records, which stop in June of that year.
+
 ```{r}
 
 # Group by 'Month' and calculate the sum of 'NB_VALID' for each group
@@ -430,6 +431,8 @@ ggplot(sum_by_TRNS, aes(x = Month, y = Sum_NB_VALD)) +
   scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
 ```
 
+By plotting the sum of validations per month, we can see the two months with the most passenger circulation are clearly September and October, with over 25M validations registered, followed by November and then January, both with numbers surrounding 23M validations. On the other hand, we have April, August and December as the months with the lowest numbers for passenger validations, standing between 15M and 20M validations, which may be due to the holiday periods.
+
 ```{r}
 # Group by 'Season' and calculate the sum of 'NB_VALID' for each group
 sum_by_TRNS <- final %>%
@@ -442,4 +445,349 @@ ggplot(sum_by_TRNS, aes(x = Season, y = Sum_NB_VALD)) +
   labs(title = "Sum of NB_VALD by Season", x = "Season", y = "Sum of NB_VALD") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+```
+
+Above are displayed the sums of passenger validations per season. Note that we considered the following intervals:
+
+spring: \[3, 5\] - \[March, May\]
+
+summer: \[6, 8\] - \[June, August\]
+
+autumn: \[9, 11\] - \[September, November\]
+
+winter: \[12, 2\] - \[December, February\]
+
+As such, we do not observe any inconsistency by comparing these results with the previous ones, regarding the sum of validations per month. As we can see, the season with the lowest validations registered is the summer, closely followed by the spring. This matches the previous conclusions, as these seasons correspond to the month intervals that got the lowest number of validations as well. This may be due to the fact that these are the seasons with the most holiday breaks, specially in summer. Also as expected, the season which shows the largest number of circulations is autumn, registering over 65M passenger validations.
+
+```{r}
+#Group by 'WeekDay' and calculate the sum of 'NB_VALID' for each group
+sum_by_TRNS <- final %>%
+  group_by(WeekDay) %>%
+  summarise(Sum_NB_VALD = sum(NB_VALD, na.rm = TRUE))
+
+weekdays_order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+# Convert 'WeekDay' to an ordered factor with specified levels
+sum_by_TRNS$WeekDay <- factor(sum_by_TRNS$WeekDay, levels = weekdays_order, ordered = TRUE)
+
+# Create a bar plot showing the sum of 'NB_VALD' for each 'WeekDay'
+ggplot(sum_by_TRNS, aes(x = WeekDay, y = Sum_NB_VALD)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  labs(title = "Sum of NB_VALD by WeekDay", x = "WeekDay", y = "Sum of NB_VALD") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  scale_y_continuous(labels = function(x) format(x, scientific=FALSE))
+```
+
+The plot for the number of validations per day of the week shows a logical decrease when it reaches the weekend, as saturday and sunday drop to under 25M passenger validations, whereas the days of the week account for over 40M validations, except for friday, which is leading up to the weekend, showing a slight decrease in circulations.
+
+```{r}
+top_station_per_month <- final %>%
+  group_by(Month, LIBELLE_ARRET) %>%
+  summarise(Total_Trips = sum(NB_VALD)) %>%
+  slice(which.max(Total_Trips)) %>%
+  ungroup()
+
+print(top_station_per_month)
+
+# Plotting the bar plot
+ggplot(top_station_per_month, aes(x = Month, y = Total_Trips, fill = LIBELLE_ARRET)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Most Used Station per Month",
+       x = "Month",
+       y = "Number of Trips",
+       fill = "Station") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_y_continuous(labels = function(x) format(x, scientific=FALSE))
+```
+
+Finally, we plotted the stations with the largest circulation volume by the month of the year and verified that mostly it is station La Defense-Grande Arche and station Saint-Lazare which hold the highest numbers of passenger validations, with two particular exceptions for the month of January, when station Montparnasse surpasses all other stations and months with a record of approximately 26M validations and the month of July, showing Gare de Lyon as the most popular station in the network.
+
+```{r}
+# Specify the weeks
+week1_start <- "2017-07-01"
+week1_end <- "2017-07-08"
+week2_start <- "2022-07-01"
+week2_end <- "2022-07-08"
+
+# Filter data for Week 1 and print the number of validations for each day
+week1_data <- final %>%
+  filter(JOUR >= week1_start & JOUR <= week1_end) %>%
+  mutate(WeekDay = weekdays(as.Date(JOUR))) %>%
+  group_by(WeekDay) %>%
+  summarise(Sum_NB_VALD = sum(NB_VALD, na.rm = TRUE))
+
+print("Week [2017-07-01 to 2017-07-08]:")
+print(week1_data)
+
+# Filter data for Week 2 and print the number of validations for each day
+week2_data <- final %>%
+  filter(JOUR >= week2_start & JOUR <= week2_end) %>%
+  mutate(WeekDay = weekdays(as.Date(JOUR))) %>%
+  group_by(WeekDay) %>%
+  summarise(Sum_NB_VALD = sum(NB_VALD, na.rm = TRUE))
+
+print("Week [2022-07-01 to 2022-07-08]:")
+print(week2_data)
+```
+
+4 Comparation with norms
+
+```{r}
+library(dplyr)
+library(lubridate)
+
+final <- final %>%
+  mutate(JOUR = as.Date(JOUR, format = "%Y-%m-%d"), 
+         WeekDay = weekdays(JOUR),
+         Day = format(JOUR, "%d"),
+         DM=format(JOUR, "%d-%m"),
+         Month = format(JOUR, "%m"),
+         Year = format(JOUR, "%Y"))
+
+summer_2017_start <- dmy("08/07/2017")
+summer_2017_end <- dmy("30/08/2017")
+halloween_2017_start <- dmy("21/10/2017")
+halloween_2017_end <- dmy("05/11/2017")
+christmas_2017_start <- dmy("23/12/2017")
+christmas_2017_end <- dmy("07/01/2018")
+
+winter_2018_start <- dmy("18/02/2018")
+winter_2018_end <- dmy("04/03/2018")
+spring_2018_start <- dmy("15/04/2018")
+spring_2018_end <- dmy("29/04/2018")
+summer_2018_start <- dmy("08/07/2018")
+summer_2018_end <- dmy("02/09/2018")
+halloween_2018_start <- dmy("21/10/2018")
+halloween_2018_end <- dmy("04/11/2018")
+christmas_2018_start <- dmy("23/12/2018")
+christmas_2018_end <- dmy("06/01/2019")
+
+winter_2019_start <- dmy("24/02/2019")
+winter_2019_end <- dmy("10/03/2019")
+spring_2019_start <- dmy("21/04/2019")
+spring_2019_end <- dmy("05/05/2019")
+summer_2019_start <- dmy("07/07/2019")
+summer_2019_end <- dmy("07/09/2019")
+halloween_2019_start <- dmy("20/10/2019")
+halloween_2019_end <- dmy("03/12/2019")
+christmas_2019_start <- dmy("22/12/2019")
+christmas_2019_end <- dmy("05/01/2020")
+
+winter_2020_start <- dmy("09/02/2020")
+winter_2020_end <- dmy("23/02/2020")
+spring_2020_start <- dmy("05/04/2020")
+spring_2020_end <- dmy("19/04/2020")
+summer_2020_start <- dmy("05/07/2020")
+summer_2020_end <- dmy("31/08/2020")
+halloween_2020_start <- dmy("18/10/2020")
+halloween_2020_end <- dmy("01/11/2020")
+christmas_2020_start <- dmy("21/12/2020")
+christmas_2020_end <- dmy("03/01/2021")
+
+winter_2021_start <- dmy("14/02/2021")
+winter_2021_end <- dmy("28/02/2021")
+spring_2021_start <- dmy("11/04/2021")
+spring_2021_end <- dmy("25/04/2021")
+summer_2021_start <- dmy("07/07/2021")
+summer_2021_end <- dmy("01/09/2021")
+halloween_2021_start <- dmy("24/10/2021")
+halloween_2021_end <- dmy("07/11/2021")
+christmas_2021_start <- dmy("19/12/2021")
+christmas_2021_end <- dmy("02/01/2022")
+
+winter_2022_start <- dmy("20/02/2022")
+winter_2022_end <- dmy("06/03/2022")
+spring_2022_start <- dmy("24/04/2022")
+spring_2022_end <- dmy("08/05/2022")
+summer_2022_start <- dmy("08/07/2022")
+summer_2022_end <- dmy("31/08/2022")
+halloween_2022_start <- dmy("23/10/2022")
+halloween_2022_end <- dmy("06/11/2022")
+christmas_2022_start <- dmy("18/12/2022")
+christmas_2022_end <- dmy("02/01/2023")
+
+winter_2023_start <- dmy("19/02/2023")
+winter_2023_end <- dmy("05/03/2023")
+spring_2023_start <- dmy("23/04/2023")
+spring_2023_end <- dmy("08/05/2023")
+
+
+# Create the Holiday column
+final <- final %>%
+  mutate(Holiday = ifelse((JOUR >= summer_2017_start & JOUR <= summer_2017_end) |
+                            (JOUR >= halloween_2017_start & JOUR <= halloween_2017_end) |
+                            (JOUR >= christmas_2017_start & JOUR <= christmas_2017_end) |
+                            (JOUR >= winter_2018_start & JOUR <= winter_2018_end) |
+                            (JOUR >= spring_2018_start & JOUR <= spring_2018_end) |
+                            (JOUR >= summer_2018_start & JOUR <= summer_2018_end) |
+                            (JOUR >= halloween_2018_start & JOUR <= halloween_2018_end) |
+                            (JOUR >= christmas_2018_start & JOUR <= christmas_2018_end) |
+                            (JOUR >= winter_2019_start & JOUR <= winter_2019_end) |
+                            (JOUR >= spring_2019_start & JOUR <= spring_2019_end) |
+                            (JOUR >= summer_2019_start & JOUR <= summer_2019_end) |
+                            (JOUR >= halloween_2019_start & JOUR <= halloween_2019_end) |
+                            (JOUR >= christmas_2019_start & JOUR <= christmas_2019_end) |
+                            (JOUR >= winter_2020_start & JOUR <= winter_2020_end) |
+                            (JOUR >= spring_2020_start & JOUR <= spring_2020_end) |
+                            (JOUR >= summer_2020_start & JOUR <= summer_2020_end) |
+                            (JOUR >= halloween_2020_start & JOUR <= halloween_2020_end) |
+                            (JOUR >= christmas_2020_start & JOUR <= christmas_2020_end) |
+                            (JOUR >= winter_2021_start & JOUR <= winter_2021_end) |
+                            (JOUR >= spring_2021_start & JOUR <= spring_2021_end) |
+                            (JOUR >= summer_2021_start & JOUR <= summer_2021_end) |
+                            (JOUR >= halloween_2021_start & JOUR <= halloween_2021_end) |
+                            (JOUR >= christmas_2021_start & JOUR <= christmas_2021_end) |
+                            (JOUR >= winter_2022_start & JOUR <= winter_2022_end) |
+                            (JOUR >= spring_2022_start & JOUR <= spring_2022_end) |
+                            (JOUR >= summer_2022_start & JOUR <= summer_2022_end) |
+                            (JOUR >= halloween_2022_start & JOUR <= halloween_2022_end) |
+                            (JOUR >= christmas_2022_start & JOUR <= christmas_2022_end) |
+                            (JOUR >= winter_2023_start & JOUR <= winter_2023_end) |
+                            (JOUR >= spring_2023_start & JOUR <= spring_2023_end)
+                          , TRUE, FALSE))
+
+#Represents a df with only non-holiday data
+non_holiday_df <- final %>%
+  filter(Holiday == FALSE) 
+#Represents a df with only holiday data  
+  holiday_df <- final %>%
+  filter(Holiday == TRUE) 
+
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+
+non_holiday_avg <-non_holiday_df %>%
+group_by(WeekDay) %>%
+summarise(non_holiday_Avg_NB_vald = mean(NB_VALD, na.rm = TRUE))
+
+holiday_avg <- holiday_df %>%
+group_by(WeekDay) %>%
+summarise(holiday_Avg_NB_vald = mean(NB_VALD, na.rm = TRUE))
+
+# Join the two data frames
+joined_df <- full_join(non_holiday_avg, holiday_avg, by = "WeekDay")
+
+# Rename the columns for clarity
+names(joined_df) <- c("WeekDay", "Avg_NB_vald_NonHoliday", "Avg_NB_vald_Holiday")
+
+long_df <- joined_df %>%
+  pivot_longer(cols = starts_with("Avg_NB_vald"), names_to = "Type", values_to = "Avg_NB_vald")
+
+# Create a barplot
+#For each day of the week, compares how many avg_nb_vald for holiday and non-holiday 
+ggplot(long_df, aes(x = WeekDay, y = Avg_NB_vald, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Week Day", y = "Average NB_vald", fill = "Type") + theme(legend.position = "bottom") +
+  theme_minimal()
+
+
+
+christmas_df <- holiday_df %>%
+  filter(Holiday == ifelse((JOUR >= christmas_2017_start & JOUR <= christmas_2017_end) |
+                             (JOUR >= christmas_2018_start & JOUR <= christmas_2018_end) |
+                             (JOUR >= christmas_2019_start & JOUR <= christmas_2019_end) |
+                             (JOUR >= christmas_2020_start & JOUR <= christmas_2020_end) |
+                             (JOUR >= christmas_2021_start & JOUR <= christmas_2021_end) |
+                             (JOUR >= christmas_2022_start & JOUR <= christmas_2022_end), 
+                           TRUE, FALSE))
+
+
+spring_break_df <- holiday_df %>%
+  filter(Holiday == ifelse(                             (JOUR >= spring_2018_start & JOUR <= spring_2018_end) |
+                            
+                             (JOUR >= spring_2019_start & JOUR <= spring_2019_end) |
+                          
+                             (JOUR >= spring_2020_start & JOUR <= spring_2020_end) |
+                            
+                             (JOUR >= spring_2021_start & JOUR <= spring_2021_end) |
+                            
+                             (JOUR >= spring_2022_start & JOUR <= spring_2022_end) |
+                             
+                             (JOUR >= spring_2023_start & JOUR <= spring_2023_end), 
+                           TRUE, FALSE))
+
+
+christmas_df_avg <-christmas_df %>%
+  group_by(Year) %>%
+  summarise(non_holiday_Avg_NB_vald = mean(NB_VALD, na.rm = TRUE))
+
+spring_break_df_avg <-spring_break_df %>%
+  group_by(Year) %>%
+  summarise(non_holiday_Avg_NB_vald = mean(NB_VALD, na.rm = TRUE))
+
+# Create a barplot
+#Average NB_vald on christmas on each Year
+ggplot(christmas_df_avg, aes(x = Year, y = non_holiday_Avg_NB_vald)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  labs(x = "Year", y = "Average NB_vald on christmas on each Year") +
+  theme_minimal()
+#Average NB_vald on christmas on each Year
+ggplot(spring_break_df_avg, aes(x = Year, y = non_holiday_Avg_NB_vald)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  labs(x = "Year", y = "Average NB_vald on spring on each Year") +
+  theme_minimal()
+
+byYearMonth <-final %>%
+  group_by(Year,Month) %>%
+  summarise(Avg_NB_vald = mean(NB_VALD, na.rm = TRUE))
+
+
+names(byYearMonth) <- c("YEAR", "MONTH", "AVG_NB_VALD")
+# Reshape the data to long format
+# Create a barplot
+# Create a barplot with more space between bars and better colors
+ggplot(byYearMonth, aes(x = MONTH, y = AVG_NB_VALD, fill = YEAR)) +
+  geom_bar(stat = "identity", position = position_dodge(0.7), width = 0.5) +
+  scale_fill_grey(start = 0, end = 0.7) +
+  labs(x = "Month", y = "Average NB_vald", fill = "Year") +
+  theme_minimal()
+
+
+# For each year, shows for each month the avg of NB
+ggplot(byYearMonth, aes(x = MONTH, y = AVG_NB_VALD, fill = YEAR)) +
+  geom_bar(stat = "identity", position = position_dodge(0.7), width = 0.5) +
+  scale_fill_brewer(palette = "Blues") +
+  labs(x = "Month", y = "Average NB_vald", fill = "Year") +
+  theme_minimal()
+
+
+most_arrets_used_holidays <- holiday_df |> group_by(LIBELLE_ARRET) |> summarise(total_nb_vald = sum(NB_VALD)) |> arrange(desc(total_nb_vald)) |> head(5)
+most_arrets_used_non_holidays <- non_holiday_df |> group_by(LIBELLE_ARRET) |> summarise(total_nb_vald = sum(NB_VALD)) |> arrange(desc(total_nb_vald)) |> head(5)
+#Stations most used in Holidays
+ggplot(most_arrets_used_holidays, aes(x = LIBELLE_ARRET, y = total_nb_vald)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  labs(title = "Stations most used in Holidays",x = "Arrêt", y = "Total NB_vald") +
+  theme_minimal() +
+  scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+#Stations most used in Non-Holidays
+ggplot(most_arrets_used_non_holidays, aes(x = LIBELLE_ARRET, y = total_nb_vald)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  labs(title = "Stations most used in Non-Holidays",x = "Arrêt", y = "Total NB_vald") +
+  theme_minimal() +
+  scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+
+
+christmasdays <-christmas_df %>%
+  group_by(Day)  %>% 
+  summarise(Avg_NB_vald = mean(NB_VALD, na.rm = TRUE))
+christmasdays$Day <- as.numeric(christmasdays$Day)
+christmasdays$Day <- factor(christmasdays$Day, levels = c(18:31, 1:7))
+
+
+# Average NB_vald on christmas days
+ggplot(christmasdays, aes(x = Day, y = Avg_NB_vald)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  labs(x = "Day", y = "Average NB_vald on christmas days") +
+  theme_minimal()
+
+spring_breakdays <- spring_break_df %>%
+  group_by(DM) %>%
+  summarise(Avg_NB_vald = mean(NB_VALD, na.rm = TRUE))
+#Average NB_vald on spring days
+ggplot(spring_breakdays, aes(x = DM, y = Avg_NB_vald)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  labs(x = "Day", y = "Average NB_vald on spring days") +
+  theme_minimal()
 ```
