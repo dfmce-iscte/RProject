@@ -16,6 +16,8 @@ library(dplyr)
 library(ggplot2)
 library(scales)
 library(sf)
+library(dplyr)
+library(lubridate)
 ```
 
 Extract all necessary documents and create a list with all the datasets
@@ -534,8 +536,6 @@ print(week2_data)
 4 Comparation with norms
 
 ```{r}
-library(dplyr)
-library(lubridate)
 
 final <- final %>%
   mutate(JOUR = as.Date(JOUR, format = "%Y-%m-%d"), 
@@ -791,3 +791,5 @@ ggplot(spring_breakdays, aes(x = DM, y = Avg_NB_vald)) +
   labs(x = "Day", y = "Average NB_vald on spring days") +
   theme_minimal()
 ```
+
+APAGAR ESTE COMENTARIO teste maria
