@@ -311,10 +311,41 @@ winter_2023_end <- dmy("05/03/2023")
 spring_2023_start <- dmy("23/04/2023")
 spring_2023_end <- dmy("08/05/2023")
 
+
+
+
 # Create the Holiday column
 combined_df <- combined_df %>%
-  mutate(Holiday = ifelse((JOUR >= summer_2017_start & JOUR <= summer_2017_end) |
-                          (JOUR >= halloween_2017_start & JOUR <= halloween_2017_end) |
-                          (JOUR >= christmas_2017_start & JOUR <= christmas_2017_end), TRUE, FALSE))
+ mutate(Holiday = ifelse((JOUR >= summer_2017_start & JOUR <= summer_2017_end) |
+                      (JOUR >= halloween_2017_start & JOUR <= halloween_2017_end) |
+                      (JOUR >= christmas_2017_start & JOUR <= christmas_2017_end) |
+                      (JOUR >= winter_2018_start & JOUR <= winter_2018_end) |
+                      (JOUR >= spring_2018_start & JOUR <= spring_2018_end) |
+                      (JOUR >= summer_2018_start & JOUR <= summer_2018_end) |
+                      (JOUR >= halloween_2018_start & JOUR <= halloween_2018_end) |
+                      (JOUR >= christmas_2018_start & JOUR <= christmas_2018_end) |
+                      (JOUR >= winter_2019_start & JOUR <= winter_2019_end) |
+                      (JOUR >= spring_2019_start & JOUR <= spring_2019_end) |
+                      (JOUR >= summer_2019_start & JOUR <= summer_2019_end) |
+                      (JOUR >= halloween_2019_start & JOUR <= halloween_2019_end) |
+                      (JOUR >= christmas_2019_start & JOUR <= christmas_2019_end) |
+                      (JOUR >= winter_2020_start & JOUR <= winter_2020_end) |
+                      (JOUR >= spring_2020_start & JOUR <= spring_2020_end) |
+                      (JOUR >= summer_2020_start & JOUR <= summer_2020_end) |
+                      (JOUR >= halloween_2020_start & JOUR <= halloween_2020_end) |
+                      (JOUR >= christmas_2020_start & JOUR <= christmas_2020_end) |
+                      (JOUR >= winter_2021_start & JOUR <= winter_2021_end) |
+                      (JOUR >= spring_2021_start & JOUR <= spring_2021_end) |
+                      (JOUR >= summer_2021_start & JOUR <= summer_2021_end) |
+                      (JOUR >= halloween_2021_start & JOUR <= halloween_2021_end) |
+                      (JOUR >= christmas_2021_start & JOUR <= christmas_2021_end) |
+                      (JOUR >= winter_2022_start & JOUR <= winter_2022_end) |
+                      (JOUR >= spring_2022_start & JOUR <= spring_2022_end) |
+                      (JOUR >= summer_2022_start & JOUR <= summer_2022_end) |
+                      (JOUR >= halloween_2022_start & JOUR <= halloween_2022_end) |
+                      (JOUR >= christmas_2022_start & JOUR <= christmas_2022_end) |
+                      (JOUR >= winter_2023_start & JOUR <= winter_2023_end) |
+                      (JOUR >= spring_2023_start & JOUR <= spring_2023_end)
+                      , TRUE, FALSE))
 
 ```
