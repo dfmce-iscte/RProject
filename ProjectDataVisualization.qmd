@@ -1,5 +1,5 @@
 ---
-title: "Project"
+title: "ProjectDataVisualization"
 format: html
 editor: visual
 ---
@@ -373,7 +373,7 @@ Note: The code cells above were executed to reduce the initial dataset which was
 
 ```{r}
 final <- read.csv("final.csv", sep = ";", header = TRUE)
-final
+#final
 ```
 
 ### 2. Exploratory Data Analysis (EDA)
@@ -396,7 +396,7 @@ final <- final %>%
 ```
 
 ```{r}
-final
+#final
 ```
 
 ```{r}
