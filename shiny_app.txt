@@ -1,0 +1,112 @@
+library(shiny)
+library(dplyr)
+library(ggplot2)
+library(plotly)  # Add this line for plotly
+library(lubridate)
+
+
+# Load data from CSV file
+final <- read.csv("final.csv", sep = ";", header = TRUE)
+# Do the necessary change to the date formats
+final <- final %>%
+  mutate(JOUR = as.Date(JOUR, format = "%Y-%m-%d"), 
+         Month = format(JOUR, "%m"),
+         Year = format(JOUR, "%Y"),
+         Season = case_when(
+           between(as.numeric(format(JOUR, "%m")), 3, 5) ~ "Spring",
+           between(as.numeric(format(JOUR, "%m")), 6, 8) ~ "Summer",
+           between(as.numeric(format(JOUR, "%m")), 9, 11) ~ "Autumn",
+           TRUE ~ "Winter"),
+         WeekDay = weekdays(JOUR))
+
+## RUN ONLY HERE
+
+
+
+# Define function to calculate the distribution of passenger validations per day of the week
+calculateDistribution <- function(data, week_start, week_end) {
+  # Filter data based on selected time period
+  filtered_data <- data %>%
+    filter(JOUR >= week_start & JOUR <= week_end)
+  
+  # Group by 'WeekDay' and calculate the sum of 'NB_VALD' for each group
+  sum_by_WeekDay <- filtered_data %>%
+    mutate(WeekDay = weekdays(as.Date(JOUR))) %>%
+    group_by(WeekDay) %>%
+    summarise(Sum_NB_VALD = sum(NB_VALD, na.rm = TRUE))
+  
+  # Order weekdays
+  weekdays_order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+  sum_by_WeekDay$WeekDay <- factor(sum_by_WeekDay$WeekDay, levels = weekdays_order, ordered = TRUE)
+  
+  return(sum_by_WeekDay)
+}
+
+# Define UI
+ui <- fluidPage(
+  titlePanel("Passenger Validations Distribution by WeekDay"),
+  
+  # Sidebar layout with input and output definitions
+  sidebarLayout(
+    
+    # Sidebar panel for inputs
+    sidebarPanel(
+      # Week range input for the first time period
+      dateRangeInput("week1", "Select Week 1:",
+                     start = "2017-07-01", end = "2023-03-31", 
+                     format = "yyyy-mm-dd", weekstart = 1),
+      
+      # Week range input for the second time period
+      dateRangeInput("week2", "Select Week 2:",
+                     start = "2017-07-01", end = "2023-03-31", 
+                     format = "yyyy-mm-dd", weekstart = 1),
+      
+      # Action button to trigger the plot
+      actionButton("plotBtn", "Generate Plot")
+    ),
+    
+    # Main panel for displaying the plot
+    mainPanel(
+      # Plot output
+      plotOutput("distributionPlot")
+    )
+  )
+)
+
+# Define server logic
+server <- function(input, output) {
+  
+  # Reactive function to generate plot based on user input
+  generatePlot <- eventReactive(input$plotBtn, {
+    # Get the selected week ranges from the date inputs
+    week1 <- input$week1
+    week2 <- input$week2
+    
+    # Call the function to calculate distribution based on selected weeks
+    distribution_data1 <- calculateDistribution(final, week1[1], week1[2])
+    distribution_data2 <- calculateDistribution(final, week2[1], week2[2])
+    
+    # Combine the data for both periods
+    combined_data <- bind_rows(
+      mutate(distribution_data1, Period = "Period 1"),
+      mutate(distribution_data2, Period = "Period 2")
+    )
+    
+    return(combined_data)
+  })
+  
+  # Render the plot
+  output$distributionPlot <- renderPlot({
+    # Plot the generated data
+    ggplot(generatePlot(), aes(x = WeekDay, y = Sum_NB_VALD, group = Period, color = Period)) +
+      geom_line() +
+      geom_text(aes(label = Sum_NB_VALD), vjust = -0.5, hjust = 0.5) +  # Add this line for text labels
+      labs(title = "Number of Validations Over Time",
+           x = "WeekDay",
+           y = "Sum of NB_VALD") +
+      theme_minimal()
+  })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
