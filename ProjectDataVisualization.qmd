@@ -1,6 +1,6 @@
 ---
 title: "ProjectDataVisualization"
-format: html
+format: pdf
 editor: visual
 ---
 
@@ -335,7 +335,7 @@ However, we still proceeded to a reduction of the data, keeping only 100.000 ent
 combined_df <- combined_df %>%
   mutate(JOUR = as.Date(JOUR, format = "%d/%m/%Y"), 
          YearMonth = format(JOUR, "%m/%Y"))
-combined_df
+#combined_df
 
 n <- nrow(combined_df)
 
@@ -347,32 +347,31 @@ subset_df <- combined_df %>%
 
 
 # Now, subset_df is your subset data frame with 100,000 records
-subset_df
+#subset_df
 ```
 
 Aggregate the dataset at the "Zone d'arrêt" level defined by the ID_REFA_LDA feature, collect geographical data about their localisations
 
 ```{r}
 
-#data <- st_read("data/stations/REF_ZdA/PL_ZDL_R_06_12_2023.shp")
-#data <- st_transform(data, crs = 4326)
-#data <- dplyr::rename(data, ID_REFA_LDA = "idrefa_lda")
-#subset_df$ID_REFA_LDA <- as.numeric(subset_df$ID_REFA_LDA)
-#final_df <- left_join(subset_df, data, by = "ID_REFA_LDA")
+data <- st_read("data/stations/REF_ZdA/PL_ZDL_R_06_12_2023.shp")
+data <- st_transform(data, crs = 4326)
+data <- dplyr::rename(data, ID_REFA_LDA = "idrefa_lda")
+subset_df$ID_REFA_LDA <- as.numeric(subset_df$ID_REFA_LDA)
+final_df <- left_join(subset_df, data, by = "ID_REFA_LDA")
+final_df <- dplyr::rename(final_df, CODE_ARRET = "CODE_STIF_ARRET")
+final_df <- dplyr::rename(final_df, CODE_RES = "CODE_STIF_RES")
+final_df <- dplyr::rename(final_df, CODE_TRNS = "CODE_STIF_TRNS")
+st_write(final_df, "final_dfshp.shp")
 #write.table(final_df, file = "final.csv", sep = ";", row.names = FALSE)
 ```
 
-```{r}
-#final_df <- data.frame(lapply(final_df, function(x) gsub("\n|\r", " ", x)))
-
-# Now write the dataframe to a file
-#write.table(final_df, file = "final.csv", sep = ";", row.names = FALSE)
-```
-
-Note: The code cells above were executed to reduce the initial dataset which was too large to manipulate. As the dataset partition is done randomly, if the cells are executed they will return a diferente subset than the one we used to perform data exploration and analysis. For this reason, we kept a final dataset in csv format, "final.csv", to ensure we were always working with the same data.
+Note: The code cells above were executed to reduce the initial dataset which was too large to manipulate. As the dataset partition is done randomly, if the cells are executed they will return a diferente subset than the one we used to perform data exploration and analysis. For this reason, we kept a final dataset in shp format, "final_dfshp.shp", to ensure we were always working with the same data.
 
 ```{r}
-final <- read.csv("final.csv", sep = ";", header = TRUE)
+final <- st_read("final_dfshp.shp")
+final <- final %>% st_drop_geometry()
+
 #final
 ```
 
@@ -484,7 +483,7 @@ The plot for the number of validations per day of the week shows a logical decre
 
 ```{r}
 top_station_per_month <- final %>%
-  group_by(Month, LIBELLE_ARRET) %>%
+  group_by(Month, LIBELLE) %>%
   summarise(Total_Trips = sum(NB_VALD)) %>%
   slice(which.max(Total_Trips)) %>%
   ungroup()
@@ -492,7 +491,7 @@ top_station_per_month <- final %>%
 print(top_station_per_month)
 
 # Plotting the bar plot
-ggplot(top_station_per_month, aes(x = Month, y = Total_Trips, fill = LIBELLE_ARRET)) +
+ggplot(top_station_per_month, aes(x = Month, y = Total_Trips, fill = LIBELLE)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Most Used Station per Month",
        x = "Month",
@@ -511,11 +510,8 @@ Finally, we plotted the stations with the largest circulation volume by the mont
 
 final <- final %>%
   mutate(JOUR = as.Date(JOUR, format = "%Y-%m-%d"), 
-         WeekDay = weekdays(JOUR),
          Day = format(JOUR, "%d"),
-         DM=format(JOUR, "%d-%m"),
-         Month = format(JOUR, "%m"),
-         Year = format(JOUR, "%Y"))
+         DM=format(JOUR, "%d-%m"))
 
 summer_2017_start <- dmy("08/07/2017")
 summer_2017_end <- dmy("03/09/2017")
@@ -748,9 +744,9 @@ ggplot(byYearMonth, aes(x = MONTH, y = AVG_NB_VALD, fill = YEAR)) +
 Here, we compare the average of passenger validations per month in each year. As we can see by the graph, from January to march of 2020 the number of passenger validations started to decrease, this was when Covid started to appear and then in April of 2020 the sum of passenger validations dropped to it´s lowest, which corresponds to the first lock down of Covid. After April, the number of passenger validations slowly started to increase. Also, the months with lowest values are August and December, which correspond to Summer and Christmas time.
 
 ```{r}
-most_arrets_used_holidays <- holiday_df |> group_by(LIBELLE_ARRET) |> summarise(total_nb_vald = sum(NB_VALD)) |> arrange(desc(total_nb_vald)) |> head(5)
+most_arrets_used_holidays <- holiday_df |> group_by(LIBELLE) |> summarise(total_nb_vald = sum(NB_VALD)) |> arrange(desc(total_nb_vald)) |> head(5)
 #Stations most used in Holidays
-ggplot(most_arrets_used_holidays, aes(x = LIBELLE_ARRET, y = total_nb_vald)) +
+ggplot(most_arrets_used_holidays, aes(x = LIBELLE, y = total_nb_vald)) +
   geom_bar(stat = "identity", fill = "skyblue", color = "black") +
   labs(title = "Stations most used in Holidays",x = "Arrêt", y = "Total NB_vald") +
   theme_minimal() + coord_flip()+
@@ -760,9 +756,9 @@ ggplot(most_arrets_used_holidays, aes(x = LIBELLE_ARRET, y = total_nb_vald)) +
 The plot above aims to obtain the most popular stations during holiday seasons. What we observe is that the station which holds the highest passenger validations during holiday is station Saint-Lazare, immediately followed by Montparnasse and La Defense-Grande Arche. Gare de Lyon and Gare du Nord come in last.
 
 ```{r}
-most_arrets_used_non_holidays <- non_holiday_df |> group_by(LIBELLE_ARRET) |> summarise(total_nb_vald = sum(NB_VALD)) |> arrange(desc(total_nb_vald)) |> head(5)
+most_arrets_used_non_holidays <- non_holiday_df |> group_by(LIBELLE) |> summarise(total_nb_vald = sum(NB_VALD)) |> arrange(desc(total_nb_vald)) |> head(5)
 #Stations most used in Non-Holidays
-ggplot(most_arrets_used_non_holidays, aes(x = LIBELLE_ARRET, y = total_nb_vald)) +
+ggplot(most_arrets_used_non_holidays, aes(x = LIBELLE, y = total_nb_vald)) +
   geom_bar(stat = "identity", fill = "skyblue", color = "black") +
   labs(title = "Stations most used in Non-Holidays",x = "Arrêt", y = "Total NB_vald") +
   theme_minimal() + coord_flip()+
